@@ -9,8 +9,7 @@
 #include "ns3/netanim-module.h"
 #include "ns3/flow-monitor-module.h"
 
-NodeContainer nodes, sender, dest, router, s1tor1, s2tor1, r1tor2, r2tod1, r2tod2;
-
+NodeContainer sender, destination, router
 
 
 
