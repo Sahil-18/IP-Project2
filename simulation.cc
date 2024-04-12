@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
 {
 
     //creating topology
-    source.Create(2);
+    sender.Create(2);
     destination.Create(2);
     router.Create(2);
 
@@ -27,14 +27,14 @@ int main(int argc, char *argv[])
     //Install Internet stacks on each node
     InternetStackHelper internet;
     Ipv4AddressHelper address;
-    internet.Install(source);
+    internet.Install(sender);
     internet.Install(destination);
     internet.Install(router);
 
 
     // Create subnets
-    NodeContainer link1 = NodeContainer(source.Get(0), router.Get(0));
-    NodeContainer link2 = NodeContainer(source.Get(1), router.Get(0));
+    NodeContainer link1 = NodeContainer(sender.Get(0), router.Get(0));
+    NodeContainer link2 = NodeContainer(sender.Get(1), router.Get(0));
     NodeContainer link3 = NodeContainer(router.Get(0), router.Get(1));
     NodeContainer link4 = NodeContainer(router.Get(1), destination.Get(1));
     NodeContainer link5 = NodeContainer(router.Get(1), destination.Get(0));
@@ -67,6 +67,4 @@ int main(int argc, char *argv[])
     Ipv4InterfaceContainer i5 = address.Assign(r2linkd2);
 
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
-
-
 }
