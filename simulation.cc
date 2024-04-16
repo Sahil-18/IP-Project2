@@ -9,6 +9,8 @@
 #include "ns3/netanim-module.h"
 #include "ns3/flow-monitor-module.h"
 
+#define MAX_BYTES 50
+
 NodeContainer sender, destination, router
 
 
@@ -36,8 +38,8 @@ int main(int argc, char *argv[])
     NodeContainer link1 = NodeContainer(sender.Get(0), router.Get(0));
     NodeContainer link2 = NodeContainer(sender.Get(1), router.Get(0));
     NodeContainer link3 = NodeContainer(router.Get(0), router.Get(1));
-    NodeContainer link4 = NodeContainer(router.Get(1), destination.Get(1));
-    NodeContainer link5 = NodeContainer(router.Get(1), destination.Get(0));
+    NodeContainer link4 = NodeContainer(router.Get(1), destination.Get(0));
+    NodeContainer link5 = NodeContainer(router.Get(1), destination.Get(1));
 
     pointToPoint.SetDeviceAttribute("DataRate", StringValue("1Gbps"));
     pointToPoint.SetChannelAttribute("Delay", StringValue("5ms"));
@@ -67,4 +69,19 @@ int main(int argc, char *argv[])
     Ipv4InterfaceContainer i5 = address.Assign(r2linkd2);
 
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
+
+    BulkSendHelper source ("ns3::TcpSocketFactory",InetSocketAddress(i4.GetAddress(1), 9));
+    // Set the amount of data to send in bytes.  Zero is unlimited.
+    source.SetAttribute("MaxBytes", UintegerValue(MAX_BYTES * 1024 * 1024));
+    ApplicationContainer sourceApps = source.Install(sender.Get(0));
+    sourceApps.Start(Seconds(0.0));
+    sourceApps.Stop(Seconds(10.0));
+    
+    PacketSinkHelper sink ("ns3::TcpSocketFactory",InetSocketAddress(Ipv4Address::GetAny(), 9));
+    ApplicationContainer sinkApps = sink.Install (destination.Get(0));
+    sinkApps.Start(Seconds(0.0));
+    sinkApps.Stop(Seconds(10.0));
+
+    Simulator::run();
+    Simulator::destroy();
 }
