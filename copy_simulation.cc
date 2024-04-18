@@ -8,14 +8,17 @@
 #include "ns3/ipv4-global-routing-helper.h"
 #include "ns3/netanim-module.h"
 #include "ns3/flow-monitor-module.h"
+#include <iostream>
+
 
 using namespace ns3;
-NS_LOG_COMPONENT_DEFINE("IP_PA2");
-NodeContainer source, destination, router
+NS_LOG_COMPONENT_DEFINE("ns3simulator");
+NodeContainer source, destination, router;
 double flow_time = 60.0;
 double start_time = 0.0;
 int d1_port = 8331, d2_port = 8331;
 uint maxBytes = 50 * 1024 * 1024; 
+
 
 int main(int argc, char *argv[])
 {
@@ -46,6 +49,7 @@ int main(int argc, char *argv[])
     pointToPoint.SetDeviceAttribute("DataRate", StringValue("1Gbps"));
     pointToPoint.SetChannelAttribute("Delay", StringValue("5ms"));
 
+
     //Assigning Ips
     address.SetBase("10.1.1.0", "255.255.255.0");
     NetDeviceContainer s1linkr1 = pointToPoint.Install(link1);
@@ -71,16 +75,19 @@ int main(int argc, char *argv[])
     Ipv4InterfaceContainer i5 = address.Assign(r2linkd2);
 
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
+    Address destinationIP1 = InetSocketAddress(i4.GetAddress(1), 8331);
+    Address destinationIP2 = InetSocketAddress(i5.GetAddress(1), 8331);
+   
     std::vector<double> tputs1, tputs2, ftime1, ftime2;
 //experiment 1
 
     for(int i=0; i<3; i++, start_time += flow_time)
     {
     Config::SetDefault("ns3::TcpL4Protocol::SocketType", TypeIdValue(TcpBic::GetTypeId()));
-  
-    
+    double endtime= start_time+flow_time;
+    std::cout<<"running"<<std::endl;
 
-    BulkSendHelper sourceHelper("ns3::TcpSocketFactory", i1);
+    BulkSendHelper sourceHelper("ns3::TcpSocketFactory", destinationIP1);
     sourceHelper.SetAttribute("MaxBytes", UintegerValue(maxBytes));
    
     PacketSinkHelper packetSinkHelper("ns3::TcpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), 8331));
@@ -88,30 +95,46 @@ int main(int argc, char *argv[])
     ApplicationContainer source_container = sourceHelper.Install(source.Get(0));
 
     dest_container.Start(Seconds(start_time));
-    dest_container.Stop(Seconds(start_time+flow_time));
+    dest_container.Stop(Seconds(endtime));
    
     source_container.Start(Seconds(start_time));
-    source_container.Stop(Seconds(start_time+flow_time));
+    source_container.Stop(Seconds(endtime));
 
 
+
+
+    }
+    
+
+    std::cout<<"out of loop"<<std::endl;
     FlowMonitorHelper flowmon;
     Ptr<FlowMonitor> monitor = flowmon.InstallAll();
-    monitor->CheckForLostPackets();
-    
-    Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier>(flowmon.GetClassifier());
-    std::map<FlowId, FlowMonitor::FlowStats> stats = monitor->GetFlowStats();
+    std::cout<<"flowmon initiated"<<std::endl;
 
-    }
-   
+	Simulator::Stop(Seconds(1500.));  
     Simulator::Run();
     Simulator::Destroy();
+
+    
+    std::cout<<"simulation ran1 "<<std::endl;
+    monitor->CheckForLostPackets();
+    std::cout<<"simulation ran 2"<<std::endl;
+    Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier>(flowmon.GetClassifier());
+    std::map<FlowId, FlowMonitor::FlowStats> stats = monitor->GetFlowStats();
+	std::cout<<"exp ran"<<std::endl;
+    //std::cout<<stats<<std::endl;
+    int flowid=1;
     for(int i=0; i<3; i++){
-        FlowMonitor::FlowStats fs = stats[flow_id];
-        time_taken = fs.timeLastRxPacket.GetSeconds()-fs.timeFirstTxPacket.GetSeconds();
-        curr_throughput = fs.rxBytes*8.0/time_taken;
-        cout<<curr_throughput;
+        FlowMonitor::FlowStats fs = stats[flowid];
+        double time_taken = fs.timeLastRxPacket.GetSeconds()-fs.timeFirstTxPacket.GetSeconds();
+        double curr_throughput = fs.rxBytes*8.0/time_taken/(1024*1024);
+        std::cout<<curr_throughput<<std::endl;
+        std::cout<<time_taken<<std::endl;
       
 
-        flow_id += 2;
+        flowid += 2;
     }
+
+    monitor->SerializeToXmlFile("ns3simulator.flowmon", true, true);
+    return 0;
 }
