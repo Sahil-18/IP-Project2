@@ -11,7 +11,9 @@
 
 #define MAX_BYTES 50
 
-NodeContainer sender, destination, router
+using namespace ns3;
+
+NodeContainer sender, destination, router;
 
 
 
@@ -82,6 +84,36 @@ int main(int argc, char *argv[])
     sinkApps.Start(Seconds(0.0));
     sinkApps.Stop(Seconds(10.0));
 
-    Simulator::run();
-    Simulator::destroy();
+    Ptr<FlowMonitor> flowMonitor;
+    FlowMonitorHelper flowHelper;
+    flowMonitor = flowHelper.InstallAll();
+
+    Simulator::Run();
+    Simulator::Destroy();
+
+    // Calculate the average throughput in bits per secondand flow completion time
+    double totalBytes = 0;
+    double totalFlowTime = 0;
+    double totalFlows = 0;
+    double throughput = 0;
+    double flowTime = 0;
+
+    flowMonitor->CheckForLostPackets();
+    Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier>(flowHelper.GetClassifier());
+    std::map<FlowId, FlowMonitor::FlowStats> stats = flowMonitor->GetFlowStats();
+
+    for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator i = stats.begin(); i != stats.end(); ++i)
+    {
+        totalBytes += i->second.txBytes;
+        totalFlowTime += i->second.timeLastRxPacket.GetSeconds() - i->second.timeFirstTxPacket.GetSeconds();
+        totalFlows++;
+    }
+
+    throughput = (totalBytes * 8) / (totalFlowTime);
+    flowTime = totalFlowTime / totalFlows;
+
+    std::cout << "Average throughput: " << throughput << " bps" << std::endl;
+    std::cout << "Average flow completion time: " << flowTime << " s" << std::endl;
+
+    return 0;
 }

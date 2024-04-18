@@ -11,7 +11,7 @@
 
 using namespace ns3;
 NS_LOG_COMPONENT_DEFINE("IP_PA2");
-NodeContainer source, destination, router
+NodeContainer source, destination, router;
 double flow_time = 60.0;
 double start_time = 0.0;
 int d1_port = 8331, d2_port = 8331;
