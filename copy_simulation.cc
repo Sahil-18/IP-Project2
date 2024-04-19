@@ -19,6 +19,29 @@ double start_time = 0.0;
 int d1_port = 8331, d2_port = 8331;
 uint maxBytes = 50 * 1024 * 1024; 
 
+void data_transfer(Ptr<Node> src, Ptr<Node> dest, Address sinkAddress, uint16_t sinkPort, std::string tcp_version, double start_time)
+{
+    if(tcp_version.compare("TcpBic")){
+        Config::SetDefault("ns3::TcpL4Protocol::SocketType", TypeIdValue(TcpBic::GetTypeId()));
+    }
+    else if(tcp_version.compare("TcpDctcp")){
+        Config::SetDefault("ns3::TcpL4Protocol::SocketType", TypeIdValue(TcpDctcp::GetTypeId()));
+    }
+    double endtime= start_time+flow_time;
+
+    BulkSendHelper sourceHelper("ns3::TcpSocketFactory", sinkAddress);
+    sourceHelper.SetAttribute("MaxBytes", UintegerValue(maxBytes));
+   
+    PacketSinkHelper packetSinkHelper("ns3::TcpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), sinkPort));
+    ApplicationContainer dest_container = packetSinkHelper.Install(dest);
+    ApplicationContainer source_container = sourceHelper.Install(src);
+
+    dest_container.Start(Seconds(start_time));
+    dest_container.Stop(Seconds(endtime));
+   
+    source_container.Start(Seconds(start_time));
+    source_container.Stop(Seconds(endtime));
+}
 
 int main(int argc, char *argv[])
 {
@@ -78,31 +101,59 @@ int main(int argc, char *argv[])
     Address destinationIP1 = InetSocketAddress(i4.GetAddress(1), 8331);
     Address destinationIP2 = InetSocketAddress(i5.GetAddress(1), 8331);
    
-    std::vector<double> tputs1, tputs2, ftime1, ftime2;
+
 //experiment 1
 
-    for(int i=0; i<3; i++, start_time += flow_time)
+    // for(int i=0; i<3; i++, start_time += flow_time)
+    // {
+    // Config::SetDefault("ns3::TcpL4Protocol::SocketType", TypeIdValue(TcpBic::GetTypeId()));
+    // double endtime= start_time+flow_time;
+    // std::cout<<"running"<<std::endl;
+
+    // BulkSendHelper sourceHelper("ns3::TcpSocketFactory", destinationIP1);
+    // sourceHelper.SetAttribute("MaxBytes", UintegerValue(maxBytes));
+   
+    // PacketSinkHelper packetSinkHelper("ns3::TcpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), 8331));
+    // ApplicationContainer dest_container = packetSinkHelper.Install(destination.Get(0));
+    // ApplicationContainer source_container = sourceHelper.Install(source.Get(0));
+
+    // dest_container.Start(Seconds(start_time));
+    // dest_container.Stop(Seconds(endtime));
+   
+    // source_container.Start(Seconds(start_time));
+    // source_container.Stop(Seconds(endtime));
+
+
+
+
+    // }
+//exp1 
+  for(int i=0; i<3; i++, start_time += flow_time)
     {
-    Config::SetDefault("ns3::TcpL4Protocol::SocketType", TypeIdValue(TcpBic::GetTypeId()));
-    double endtime= start_time+flow_time;
-    std::cout<<"running"<<std::endl;
-
-    BulkSendHelper sourceHelper("ns3::TcpSocketFactory", destinationIP1);
-    sourceHelper.SetAttribute("MaxBytes", UintegerValue(maxBytes));
-   
-    PacketSinkHelper packetSinkHelper("ns3::TcpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), 8331));
-    ApplicationContainer dest_container = packetSinkHelper.Install(destination.Get(0));
-    ApplicationContainer source_container = sourceHelper.Install(source.Get(0));
-
-    dest_container.Start(Seconds(start_time));
-    dest_container.Stop(Seconds(endtime));
-   
-    source_container.Start(Seconds(start_time));
-    source_container.Stop(Seconds(endtime));
-
-
-
-
+        data_transfer(source.Get(0), destination.Get(0), destinationIP1, 8331, "TcpBic", start_time);
+    }
+    //exp2 
+for(int i=0; i<3; i++, start_time += flow_time)
+    {
+        data_transfer(source.Get(0), destination.Get(0), destinationIP1, 8331, "TcpBic", start_time);
+        data_transfer(source.Get(1), destination.Get(1), destinationIP2, 8331, "TcpBic", start_time);
+    }
+    //exp3
+  for(int i=0; i<3; i++, start_time += flow_time)
+    {
+        data_transfer(source.Get(0), destination.Get(0), destinationIP1, 8331, "TcpDctcp", start_time);
+    }
+    //exp4
+  for(int i=0; i<3; i++, start_time += flow_time)
+    {
+        data_transfer(source.Get(0), destination.Get(0), destinationIP1, 8331, "TcpDctcp", start_time);
+        data_transfer(source.Get(1), destination.Get(1), destinationIP2, 8331, "TcpDctcp", start_time);
+    }
+    //exp 5
+     for(int i=0; i<3; i++, start_time += flow_time)
+    {
+        data_transfer(source.Get(0), destination.Get(0), destinationIP1, 8331, "TcpBic", start_time);
+        data_transfer(source.Get(1), destination.Get(1), destinationIP2, 8331, "TcpDctcp", start_time);
     }
     
 
@@ -124,16 +175,75 @@ int main(int argc, char *argv[])
 	std::cout<<"exp ran"<<std::endl;
     //std::cout<<stats<<std::endl;
     int flowid=1;
-    for(int i=0; i<3; i++){
+    std::vector<double> tputsexp1, tputsexp2, tputs2exp2,tputsexp3, tputsexp4, tputs2exp4, tputsexp5, tputs2exp5;
+    std::vector<double> ftimeexp1, ftimeexp2, ftime2exp2, ftimeexp3,ftimeexp4,ftimeexp5,ftime2exp4,ftime2exp5;
+    for(int i=0; i<15; i++){
         FlowMonitor::FlowStats fs = stats[flowid];
         double time_taken = fs.timeLastRxPacket.GetSeconds()-fs.timeFirstTxPacket.GetSeconds();
         double curr_throughput = fs.rxBytes*8.0/time_taken/(1024*1024);
-        std::cout<<curr_throughput<<std::endl;
-        std::cout<<time_taken<<std::endl;
+        if(flowid<7)
+        {tputsexp1.push_back(curr_throughput);
+        ftimeexp1.push_back(time_taken);
+        std::cout<<"exp1 -thpt - "<<curr_throughput<<std::endl;
+        std::cout<<"exp1 -time - "<<time_taken<<std::endl;
+        }
+        else if(flowid <18 )
+        {
+        tputsexp2.push_back(curr_throughput);
+        ftimeexp2.push_back(time_taken);
+        std::cout<<"exp2 -thpt link 1 - "<<curr_throughput<<std::endl;
+        std::cout<<"exp2-time link 1 - "<<time_taken<<std::endl;
+        FlowMonitor::FlowStats fs = stats[flowid+1];
+        flowid += 2;
+        time_taken = fs.timeLastRxPacket.GetSeconds()-fs.timeFirstTxPacket.GetSeconds();
+        curr_throughput = fs.rxBytes*8.0/time_taken/(1024*1024);
+        tputs2exp2.push_back(curr_throughput);
+        ftime2exp2.push_back(time_taken);
+        std::cout<<"exp2 -thpt link 2 - "<<curr_throughput<<std::endl;
+        std::cout<<"exp2-time link 2 - "<<time_taken<<std::endl;
+        }
+        else if(flowid<25)
+        {
+        tputsexp3.push_back(curr_throughput);
+        ftimeexp3.push_back(time_taken);
+        std::cout<<"exp3 -thpt - "<<curr_throughput<<std::endl;
+        std::cout<<"exp3 -time - "<<time_taken<<std::endl;
+        }
+        else if(flowid<37)
+        {
+          tputsexp4.push_back(curr_throughput);
+        ftimeexp4.push_back(time_taken);
+        std::cout<<"exp4 -thpt link 1 - "<<curr_throughput<<std::endl;
+        std::cout<<"exp4-time link 1 - "<<time_taken<<std::endl;
+        FlowMonitor::FlowStats fs = stats[flowid+1];
+        flowid += 2;
+        time_taken = fs.timeLastRxPacket.GetSeconds()-fs.timeFirstTxPacket.GetSeconds();
+        curr_throughput = fs.rxBytes*8.0/time_taken/(1024*1024);
+        tputs2exp4.push_back(curr_throughput);
+        ftime2exp4.push_back(time_taken);
+        std::cout<<"exp4 -thpt link 2 - "<<curr_throughput<<std::endl;
+        std::cout<<"exp4-time link 2 - "<<time_taken<<std::endl;  
+        }
+        else
+        {
+            tputsexp5.push_back(curr_throughput);
+        ftimeexp5.push_back(time_taken);
+        std::cout<<"exp5 -thpt link 1 - "<<curr_throughput<<std::endl;
+        std::cout<<"exp5-time link 1 - "<<time_taken<<std::endl;
+        FlowMonitor::FlowStats fs = stats[flowid+1];
+        flowid += 2;
+        time_taken = fs.timeLastRxPacket.GetSeconds()-fs.timeFirstTxPacket.GetSeconds();
+        curr_throughput = fs.rxBytes*8.0/time_taken/(1024*1024);
+        tputs2exp5.push_back(curr_throughput);
+        ftime2exp5.push_back(time_taken);
+        std::cout<<"exp5 -thpt link 2 - "<<curr_throughput<<std::endl;
+        std::cout<<"exp5-time link 2 - "<<time_taken<<std::endl;
+        }
       
 
         flowid += 2;
     }
+    
 
     monitor->SerializeToXmlFile("ns3simulator.flowmon", true, true);
     return 0;
