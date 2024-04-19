@@ -19,6 +19,17 @@ double start_time = 0.0;
 int d1_port = 8331, d2_port = 8331;
 uint maxBytes = 50 * 1024 * 1024; 
 
+
+float calculate_sd(float a, float b, float c)
+{
+  float mean = (a+b+c)/3;
+  float summation = pow(a-mean,2) + pow(b-mean, 2) + pow(c-mean, 2);
+  float sd = sqrt(summation/3);
+  return sd;
+}
+
+
+
 void data_transfer(Ptr<Node> src, Ptr<Node> dest, Address sinkAddress, uint16_t sinkPort, std::string tcp_version, double start_time)
 {
     if(tcp_version.compare("TcpBic")){
@@ -70,7 +81,7 @@ int main(int argc, char *argv[])
     NodeContainer link5 = NodeContainer(router.Get(1), destination.Get(0));
 
     pointToPoint.SetDeviceAttribute("DataRate", StringValue("1Gbps"));
-    pointToPoint.SetChannelAttribute("Delay", StringValue("5ms"));
+    //pointToPoint.SetChannelAttribute("Delay", StringValue("5ms"));
 
 
     //Assigning Ips
@@ -246,5 +257,65 @@ for(int i=0; i<3; i++, start_time += flow_time)
     
 
     monitor->SerializeToXmlFile("ns3simulator.flowmon", true, true);
+    float th_means[9];
+th_means[1] = (tputsexp1[1]  + tputsexp1[2]  + tputsexp1[0]) / 3; //th1_s1
+th_means[2] = (tputsexp2[1]  + tputsexp2[2]  + tputsexp2[0]) / 3; //th2_s1
+th_means[3] = (tputs2exp2[1]  + tputs2exp2[2]  + tputs2exp2[0]) / 3; //th2_s2
+th_means[4] =(tputsexp3[1]  + tputsexp3[2]  + tputsexp3[0]) / 3; //th3_s1
+th_means[5] = (tputsexp4[1]  + tputsexp4[2]  + tputsexp4[0]) / 3; //th4_s1
+th_means[6] = (tputs2exp4[1]  + tputs2exp4[2]  + tputs2exp4[0])/ 3; //th4_s2
+th_means[7] = (tputsexp5[1]  + tputsexp5[2]  + tputsexp5[0]) / 3; //th5_s1
+th_means[8] = (tputs2exp5[1]  + tputs2exp5[2]  + tputs2exp5[0]) / 3; //th5_s2
+
+float th_sds[9];
+th_sds[1] = calculate_sd(tputsexp1[1]  , tputsexp1[2]  , tputsexp1[0]);
+th_sds[2] = calculate_sd(tputsexp2[1]  , tputsexp2[2]  , tputsexp2[0]); //th2_s1
+th_sds[3] = calculate_sd(tputs2exp2[1]  , tputs2exp2[2]  , tputs2exp2[0]); //th2_s2
+th_sds[4] = calculate_sd(tputsexp3[1]  , tputsexp3[2]  , tputsexp3[0]); //th3_s1
+th_sds[5] = calculate_sd(tputsexp4[1]  , tputsexp4[2]  , tputsexp4[0]); //th4_s1
+th_sds[6] = calculate_sd(tputs2exp4[1]  , tputs2exp4[2]  , tputs2exp4[0]); //th4_s2
+th_sds[7] = calculate_sd(tputsexp5[1]  , tputsexp5[2]  , tputsexp5[0]); //th5_s1
+th_sds[8] = calculate_sd(tputs2exp5[1]  , tputs2exp5[2]  , tputs2exp5[0]); //th5_s2
+
+float afct_means[9];
+afct_means[1] = (ftimeexp1[1]  + ftimeexp1[2]  + ftimeexp1[0]) / 3; //th1_s1
+afct_means[2] = (ftimeexp2[1]  + ftimeexp2[2]  + ftimeexp2[0]) / 3; //th2_s1
+afct_means[3] = (ftime2exp2[1]  + ftime2exp2[2]  + ftime2exp2[0]) / 3; //th2_s2
+afct_means[4] =(ftimeexp3[1]  + ftimeexp3[2]  + ftimeexp3[0]) / 3; //th3_s1
+afct_means[5] = (ftimeexp4[1]  + ftimeexp4[2]  + ftimeexp4[0]) / 3; //th4_s1
+afct_means[6] = (ftime2exp4[1]  + ftime2exp4[2]  + ftime2exp4[0])/ 3; //th4_s2
+afct_means[7] = (ftimeexp5[1]  + ftimeexp5[2]  + ftimeexp5[0]) / 3; //th5_s1
+afct_means[8] = (ftime2exp5[1]  + ftime2exp5[2]  + ftime2exp5[0]) / 3; //th5_s2
+
+
+float afct_sds[9];
+afct_sds[1] = calculate_sd(ftimeexp1[1]  , ftimeexp1[2]  , ftimeexp1[0]);
+afct_sds[2] = calculate_sd(ftimeexp2[1]  , ftimeexp2[2]  , ftimeexp2[0]);
+afct_sds[3] = calculate_sd(ftime2exp2[1]  , ftime2exp2[2]  , ftime2exp2[0]);
+afct_sds[4] = calculate_sd(ftimeexp3[1]  , ftimeexp3[2]  , ftimeexp3[0]);
+afct_sds[5] = calculate_sd(ftimeexp4[1]  , ftimeexp4[2]  , ftimeexp4[0]);
+afct_sds[6] = calculate_sd(ftime2exp4[1]  , ftime2exp4[2]  , ftime2exp4[0]);
+afct_sds[7] = calculate_sd(ftimeexp5[1]  ,ftimeexp5[2]  , ftimeexp5[0]);
+afct_sds[8] = calculate_sd(ftime2exp5[1]  , ftime2exp5[2]  , ftime2exp5[0]);
+
+// Setting up the output csv file 
+std::ofstream outputFile("tcp_schopra4_spurohi2.csv");
+outputFile<<"exp,r1_s1,r2_s1,r3_s1,avg_s1,std_s1,unit_s1,r1_s2,r2_s2,r3_s2,avg_s2,std_s2,unit_s2,";
+outputFile<<"\n";
+
+outputFile<<"th_1,"<<tputsexp1[0]<<","<<tputsexp1[1]<<","<<tputsexp1[2]<<","<<th_means[1]<<","<<th_sds[1]<<","<<"Mbps,"<<",,,,,,\n";
+outputFile<<"th_2,"<<tputsexp2[0]<<","<<tputsexp2[1]<<","<<tputsexp2[2]<<","<<th_means[2]<<","<<th_sds[2]<<","<<"Mbps,"<<tputs2exp2[0]<<","<<tputs2exp2[1]<<","<<tputs2exp2[2]<<","<<th_means[3]<<","<<th_sds[3]<<",Mbps,\n";
+outputFile<<"th_3,"<<tputsexp3[0]<<","<<tputsexp3[1]<<","<<tputsexp3[2]<<","<<th_means[4]<<","<<th_sds[4]<<","<<"Mbps,"<<",,,,,,\n";
+outputFile<<"th_4,"<<tputsexp4[0]<<","<<tputsexp4[1]<<","<<tputsexp4[2]<<","<<th_means[5]<<","<<th_sds[5]<<","<<"Mbps,"<<tputs2exp4[0]<<","<<tputs2exp4[1]<<","<<tputs2exp4[2]<<","<<th_means[6]<<","<<th_sds[6]<<",Mbps,\n";
+outputFile<<"th_5,"<<tputsexp5[0]<<","<<tputsexp5[1]<<","<<tputsexp5[2]<<","<<th_means[7]<<","<<th_sds[7]<<","<<"Mbps,"<<tputs2exp5[0]<<","<<tputs2exp5[1]<<","<<tputs2exp5[2]<<","<<th_means[8]<<","<<th_sds[8]<<",Mbps,\n";
+
+outputFile<<"afct_1,"<<ftimeexp1[0]<<","<< ftimeexp1[1]<<","<< ftimeexp1[2]<<","<< afct_means[1]<<","<<afct_sds[1]<<","<<"Seconds,"<<",,,,,,\n";
+outputFile<<"afct_2,"<<ftimeexp2[0]<<","<< ftimeexp2[1]<<","<< ftimeexp2[2]<<","<< afct_means[2]<<","<<afct_sds[2]<<","<<"Seconds,"<<ftime2exp2[0]<<","<<ftime2exp2[1]<<","<<ftime2exp2[2]<<","<<afct_means[3]<<","<<afct_sds[3]<<",Seconds,\n";
+outputFile<<"afct_3,"<<ftimeexp3[0]<<","<<ftimeexp3[1]<<","<<ftimeexp3[2]<<","<<afct_means[4]<<","<<afct_sds[4]<<","<<"Seconds,"<<",,,,,,\n";
+outputFile<<"afct_4,"<<ftimeexp4[0]<<","<<ftimeexp4[1]<<","<<ftimeexp4[2]<<","<<afct_means[5]<<","<<afct_sds[5]<<","<<"Seconds,"<<ftime2exp4[0]<<","<<ftime2exp4[1]<<","<<ftime2exp4[2]<<","<<afct_means[6]<<","<<afct_sds[6]<<",Seconds,\n";
+outputFile<<"afct_5,"<<ftimeexp5[0]<<","<<ftimeexp5[1]<<","<<ftimeexp5[2]<<","<<afct_means[7]<<","<<afct_sds[7]<<","<<"Seconds,"<<ftime2exp5[0]<<","<<ftime2exp5[1]<<","<<ftime2exp5[2]<<","<<afct_means[8]<<","<<afct_sds[8]<<",Seconds,\n";
+
+
+
     return 0;
 }
